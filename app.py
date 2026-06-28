@@ -89,15 +89,9 @@ OPENAI_API_KEY  = settings.OPENAI_API_KEY
 OPENAI_API_BASE = settings.OPENAI_API_BASE
 OPENAI_MODEL    = settings.OPENAI_MODEL
 
-# ── Determine a writable database path ──────────────────────────────────────
-# On Vercel (and most Linux environments) /tmp is writable.
-# If /tmp exists and is writable, use it; otherwise fall back to the configured path.
-if os.path.exists("/tmp") and os.access("/tmp", os.W_OK):
-    DB_PATH = "/tmp/demo.db"
-    logging.info(f"Using writable /tmp path: {DB_PATH}")
-else:
-    DB_PATH = settings.DATABASE_URL
-    logging.info(f"Using configured database path: {DB_PATH}")
+# ── Always use /tmp for writable database (works on Vercel and most Linux) ──
+DB_PATH = "/tmp/demo.db"
+logging.info(f"Using database at: {DB_PATH}")
 
 if not OPENAI_API_KEY:
     logging.warning("OPENAI_API_KEY not set — LLM features will use smart fallback.")
