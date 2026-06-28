@@ -29,7 +29,17 @@ NEW in v3.2:
 Run: uvicorn app:app --reload
 """
 
-import os, re, json, time, random, sqlite3, logging, traceback, csv, io as _io
+import os
+import re
+import json
+import time
+import random
+import sqlite3
+import logging
+import traceback
+import csv
+import io as _io
+import shutil  # added for copying database on Vercel
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -88,7 +98,27 @@ settings = Settings()
 OPENAI_API_KEY  = settings.OPENAI_API_KEY
 OPENAI_API_BASE = settings.OPENAI_API_BASE
 OPENAI_MODEL    = settings.OPENAI_MODEL
-DB_PATH         = settings.DATABASE_URL
+
+# ── FIX: Vercel writable database path ──────────────────────────────────────
+# On Vercel, the filesystem is read-only except for /tmp.
+# We override DB_PATH to use /tmp/demo.db and copy an existing database if available.
+if os.getenv("VERCEL"):
+    # Use /tmp for writable storage
+    DB_PATH = "/tmp/demo.db"
+    # If the database file does not exist in /tmp, copy from the project source if present
+    if not os.path.exists(DB_PATH):
+        source = settings.DATABASE_URL
+        # If source is relative, make it absolute relative to this file's directory
+        if not os.path.isabs(source):
+            source = os.path.join(_BASE_DIR, source)
+        if os.path.exists(source):
+            shutil.copy(source, DB_PATH)
+            logging.info(f"Copied database from {source} to {DB_PATH}")
+        else:
+            logging.info(f"No existing database found at {source}; will create a new one in /tmp")
+else:
+    # Local development – use the path from settings
+    DB_PATH = settings.DATABASE_URL
 
 if not OPENAI_API_KEY:
     logging.warning("OPENAI_API_KEY not set — LLM features will use smart fallback.")
